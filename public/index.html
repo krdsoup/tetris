@@ -148,6 +148,84 @@
     0% { filter: brightness(2); }
     100% { filter: brightness(1); }
   }
+
+  /* mobile d-pad */
+  .dpad {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 180px;
+    height: 180px;
+    z-index: 100;
+  }
+
+  .dpad-btn {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .dpad-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .dpad-up    { top: 0;    left: 50%; transform: translateX(-50%); }
+  .dpad-down  { bottom: 0; left: 50%; transform: translateX(-50%); }
+  .dpad-left  { top: 50%;  left: 0;   transform: translateY(-50%); }
+  .dpad-right { top: 50%;  right: 0;  transform: translateY(-50%); }
+  .dpad-center {
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    width: 52px;
+    height: 52px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px), (pointer: coarse) {
+    .dpad { display: block; }
+
+    body { align-items: flex-start; padding-top: 8px; }
+
+    .game-wrapper {
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .side-panel {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-width: auto;
+      justify-content: center;
+    }
+
+    .side-panel .panel-box { padding: 8px 12px; }
+    .side-panel .panel-box h3 { margin-bottom: 4px; font-size: 9px; }
+    .score-value { font-size: 20px; }
+    .level-value { font-size: 16px; }
+    .lines-value { font-size: 14px; }
+
+    .side-panel .panel-box:nth-child(5) { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -194,6 +272,14 @@
       </div>
     </div>
   </div>
+</div>
+
+<div class="dpad">
+  <button class="dpad-btn dpad-up" data-action="rotate">&#9650;</button>
+  <button class="dpad-btn dpad-left" data-action="left">&#9664;</button>
+  <button class="dpad-btn dpad-center" data-action="drop">DROP</button>
+  <button class="dpad-btn dpad-right" data-action="right">&#9654;</button>
+  <button class="dpad-btn dpad-down" data-action="down">&#9660;</button>
 </div>
 
 <script>
@@ -812,6 +898,40 @@ document.addEventListener('keydown', (e) => {
 
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('restart-btn').addEventListener('click', startGame);
+
+// mobile d-pad
+function handleAction(action) {
+  if (gameOver || !piece) return;
+  switch (action) {
+    case 'left':   move(-1, 0); break;
+    case 'right':  move(1, 0); break;
+    case 'down':   if (!move(0, 1)) lock(); dropTimer = 0; break;
+    case 'rotate': rotatePiece(); break;
+    case 'drop':   hardDrop(); break;
+  }
+}
+
+document.querySelectorAll('.dpad-btn').forEach(btn => {
+  const action = btn.dataset.action;
+  let intervalId = null;
+
+  btn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    handleAction(action);
+    if (action === 'left' || action === 'right' || action === 'down') {
+      intervalId = setInterval(() => handleAction(action), 100);
+    }
+  });
+
+  btn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+  });
+
+  btn.addEventListener('touchcancel', () => {
+    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+  });
+});
 
 draw();
 </script>
